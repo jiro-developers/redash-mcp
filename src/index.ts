@@ -3,6 +3,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
+if (process.argv[2] === "setup") {
+  const { main } = await import("./setup.js");
+  await main();
+  process.exit(0);
+}
+
 const REDASH_URL = process.env.REDASH_URL?.replace(/\/$/, "");
 const REDASH_API_KEY = process.env.REDASH_API_KEY;
 
