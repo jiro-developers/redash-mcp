@@ -56,7 +56,7 @@ export async function main() {
   const redashUrl = await p.text({
     message: "Redash URL을 입력하세요",
     placeholder: "https://redash.example.com",
-    validate(value) {
+    validate(value: string | undefined) {
       if (!value) return "URL을 입력해주세요.";
       if (!value.startsWith("http://") && !value.startsWith("https://"))
         return "http:// 또는 https://로 시작해야 합니다.";
@@ -70,7 +70,7 @@ export async function main() {
 
   const apiKey = await p.text({
     message: "Redash API 키를 입력하세요",
-    validate(value) {
+    validate(value: string | undefined) {
       if (!value) return "API 키를 입력해주세요.";
     },
   });

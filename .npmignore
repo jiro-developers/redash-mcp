@@ -1,5 +1,5 @@
 src/
-tsconfig.json
+.claude/
 .omc/
-node_modules/
 *.tgz
+tsconfig.json
