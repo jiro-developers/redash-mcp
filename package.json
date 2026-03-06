@@ -1,6 +1,6 @@
 {
   "name": "redash-mcp",
-  "version": "2.0.4",
+  "version": "2.1.0",
   "description": "MCP server for Redash",
   "type": "module",
   "main": "dist/index.js",
