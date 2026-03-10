@@ -80,6 +80,67 @@ export async function main() {
     process.exit(0);
   }
 
+  // ── 안전 모드 설정 ────────────────────────────────────────────────────────
+  const safetyMode = await p.select({
+    message: "SQL 안전 모드를 선택하세요",
+    options: [
+      { value: "warn", label: "warn   — 위험 쿼리 경고 후 실행 (권장)" },
+      { value: "strict", label: "strict — 위험 쿼리 차단" },
+      { value: "off", label: "off    — 제한 없음 (관리자 전용)" },
+    ],
+    initialValue: "warn",
+  });
+
+  if (p.isCancel(safetyMode)) {
+    p.cancel("설치가 취소되었습니다.");
+    process.exit(0);
+  }
+
+  const autoLimitRaw = await p.text({
+    message: "자동 LIMIT 값을 입력하세요 (0 = 비활성화)",
+    placeholder: "1000",
+    initialValue: "1000",
+    validate(value: string | undefined) {
+      if (!value) return undefined;
+      if (isNaN(parseInt(value, 10))) return "숫자를 입력해주세요.";
+    },
+  });
+
+  if (p.isCancel(autoLimitRaw)) {
+    p.cancel("설치가 취소되었습니다.");
+    process.exit(0);
+  }
+
+  const defaultMaxAgeRaw = await p.text({
+    message: "Redash 캐시 유지 시간을 입력하세요 (초, 0 = 항상 새로 실행)",
+    placeholder: "600",
+    initialValue: "600",
+    validate(value: string | undefined) {
+      if (!value) return undefined;
+      if (isNaN(parseInt(value, 10))) return "숫자를 입력해주세요.";
+    },
+  });
+
+  if (p.isCancel(defaultMaxAgeRaw)) {
+    p.cancel("설치가 취소되었습니다.");
+    process.exit(0);
+  }
+
+  const mcpCacheTtlRaw = await p.text({
+    message: "MCP 레이어 캐시 TTL을 입력하세요 (초, 0 = 비활성화)",
+    placeholder: "300",
+    initialValue: "300",
+    validate(value: string | undefined) {
+      if (!value) return undefined;
+      if (isNaN(parseInt(value, 10))) return "숫자를 입력해주세요.";
+    },
+  });
+
+  if (p.isCancel(mcpCacheTtlRaw)) {
+    p.cancel("설치가 취소되었습니다.");
+    process.exit(0);
+  }
+
   const url = redashUrl.replace(/\/$/, "");
   const npxPath = findNpxPath();
 
@@ -89,6 +150,10 @@ export async function main() {
     env: {
       REDASH_URL: url,
       REDASH_API_KEY: apiKey,
+      REDASH_SAFETY_MODE: String(safetyMode),
+      REDASH_AUTO_LIMIT: String(autoLimitRaw || "1000"),
+      REDASH_DEFAULT_MAX_AGE: String(defaultMaxAgeRaw || "600"),
+      REDASH_MCP_CACHE_TTL: String(mcpCacheTtlRaw || "300"),
     },
   };
 

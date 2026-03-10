@@ -2,6 +2,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { analyzeQuery } from "./sql-guard.js";
+import { getCached, setCached } from "./query-cache.js";
 
 if (process.argv[2] === "setup") {
   const { main } = await import("./setup.js");
@@ -157,21 +159,59 @@ server.tool(
 
 // ─── Query Execution ──────────────────────────────────────────────────────────
 
+const DEFAULT_MAX_AGE = parseInt(process.env.REDASH_DEFAULT_MAX_AGE ?? "0", 10) || 0;
+
 server.tool(
   "run_query",
   "SQL을 데이터소스에 직접 실행하고 결과를 반환합니다. SQL 작성 전 list_tables → get_table_columns로 스키마를 먼저 확인하세요.",
   {
     data_source_id: z.number().describe("list_data_sources로 확인한 데이터소스 ID"),
     query: z.string().describe("실행할 SQL 쿼리"),
-    max_age: z.number().optional().default(0).describe("캐시 유지 시간(초), 0이면 항상 새로 실행"),
+    max_age: z.number().optional().describe("Redash 캐시 유지 시간(초). 미지정 시 REDASH_DEFAULT_MAX_AGE 환경변수 사용"),
     max_rows: z.number().optional().default(100).describe("반환할 최대 행 수 (기본 100)"),
     format: z.enum(["table", "json"]).optional().default("table").describe("결과 포맷: table(마크다운) 또는 json"),
     timeout_secs: z.number().optional().default(30).describe("쿼리 실행 타임아웃(초)"),
   },
   async ({ data_source_id, query, max_age, max_rows, format, timeout_secs }) => {
+    // 1. SQL 안전 가드
+    const guard = analyzeQuery(query);
+    if (guard.blocked) {
+      return { content: [{ type: "text", text: guard.message }] };
+    }
+
+    // auto-LIMIT이 적용된 경우 변환된 쿼리 사용
+    const effectiveQuery = guard.modifiedQuery ?? query;
+    const effectiveMaxAge = max_age ?? DEFAULT_MAX_AGE;
+
+    // 2. MCP 레이어 캐시 조회
+    const cached = getCached(data_source_id, effectiveQuery);
+    if (cached) {
+      const { rows, columns, warningPrefix } = cached;
+      const displayRows = rows.slice(0, max_rows);
+      const truncated = rows.length > max_rows
+        ? `\n⚠️ 전체 ${rows.length}행 중 ${max_rows}행만 표시합니다.`
+        : "";
+      let body: string;
+      if (format === "json") {
+        body = JSON.stringify(displayRows, null, 2);
+      } else {
+        body = formatAsMarkdownTable(columns, displayRows);
+      }
+      const cacheNote = "📦 MCP 캐시에서 반환된 결과입니다.\n\n";
+      return {
+        content: [
+          {
+            type: "text",
+            text: `${warningPrefix}${cacheNote}총 ${rows.length}행 | 컬럼: ${columns.join(", ")}${truncated}\n\n${body}`,
+          },
+        ],
+      };
+    }
+
+    // 3. Redash API 호출
     const res = await redashFetch("/query_results", {
       method: "POST",
-      body: JSON.stringify({ data_source_id, query, max_age }),
+      body: JSON.stringify({ data_source_id, query: effectiveQuery, max_age: effectiveMaxAge }),
     });
 
     let result;
@@ -184,6 +224,11 @@ server.tool(
     const qr = result.query_result;
     const rows = qr.data.rows;
     const columns = qr.data.columns.map((c: any) => c.name);
+
+    // 4. MCP 캐시에 저장
+    const warningPrefix = guard.message ? `${guard.message}\n\n` : "";
+    setCached(data_source_id, effectiveQuery, { rows, columns, warningPrefix });
+
     const displayRows = rows.slice(0, max_rows);
     const truncated = rows.length > max_rows
       ? `\n⚠️ 전체 ${rows.length}행 중 ${max_rows}행만 표시합니다.`
@@ -200,7 +245,7 @@ server.tool(
       content: [
         {
           type: "text",
-          text: `총 ${rows.length}행 | 컬럼: ${columns.join(", ")}${truncated}\n\n${body}`,
+          text: `${warningPrefix}총 ${rows.length}행 | 컬럼: ${columns.join(", ")}${truncated}\n\n${body}`,
         },
       ],
     };
