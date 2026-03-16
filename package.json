@@ -4,11 +4,11 @@
   "description": "MCP server for Redash",
   "repository": {
     "type": "git",
-    "url": "https://github.com/seob717/redash-mcp.git"
+    "url": "https://github.com/jiro-developers/redash-mcp.git"
   },
-  "homepage": "https://github.com/seob717/redash-mcp#readme",
+  "homepage": "https://github.com/jiro-developers/redash-mcp#readme",
   "bugs": {
-    "url": "https://github.com/seob717/redash-mcp/issues"
+    "url": "https://github.com/jiro-developers/redash-mcp/issues"
   },
   "type": "module",
   "main": "dist/index.js",
