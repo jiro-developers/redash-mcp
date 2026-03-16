@@ -74,7 +74,22 @@ Go to Redash → Profile (top right) → **Edit Profile** → Copy **API Key**
 
 #### 2-A. Claude Desktop
 
-Open `~/Library/Application Support/Claude/claude_desktop_config.json` and add:
+Open the config file below and add the `mcpServers` entry. Create the file if it doesn't exist.
+
+**macOS**
+```
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+**Windows**
+```
+%APPDATA%\Claude\claude_desktop_config.json
+```
+
+**Linux**
+```
+~/.config/Claude/claude_desktop_config.json
+```
 
 ```json
 {
@@ -93,9 +108,21 @@ Open `~/Library/Application Support/Claude/claude_desktop_config.json` and add:
 
 Fully quit and restart Claude Desktop after saving.
 
+> **macOS / Linux**: If `npx` is not found, run `which npx` to get the full path and use that instead.
+
 #### 2-B. Claude Code (CLI)
 
-Open `~/.claude/settings.json` and add:
+Open the config file below and add the `mcpServers` entry.
+
+**macOS / Linux**
+```
+~/.claude/settings.json
+```
+
+**Windows**
+```
+%USERPROFILE%\.claude\settings.json
+```
 
 ```json
 {
@@ -111,8 +138,6 @@ Open `~/.claude/settings.json` and add:
   }
 }
 ```
-
-> **macOS**: If `npx` is not found, run `which npx` to get the full path and use that instead.
 
 ---
 
