@@ -79,7 +79,22 @@ if (Test-Path $claudePath) {
   }
 }
 
-# ── STEP 3: MCP 설정 ──────────────────────────────────────────────────────────
+# ── STEP 3: redash-mcp 다운로드 ───────────────────────────────────────────────
+Write-Step "redash-mcp 다운로드 중..."
+
+$mcpDir = Join-Path $env:USERPROFILE ".redash-mcp"
+$mcpBin = Join-Path $mcpDir "index.js"
+if (-not (Test-Path $mcpDir)) { New-Item -ItemType Directory -Force -Path $mcpDir | Out-Null }
+
+try {
+  Invoke-WebRequest -Uri "https://raw.githubusercontent.com/jiro-developers/redash-mcp/main/dist/index.js" -OutFile $mcpBin -UseBasicParsing
+  Write-Success "다운로드 완료: $mcpBin"
+} catch {
+  Write-Fail "다운로드 실패. 네트워크 연결을 확인해주세요."
+  exit 1
+}
+
+# ── STEP 4: MCP 설정 ──────────────────────────────────────────────────────────
 Write-Step "MCP 서버 설정을 시작합니다."
 Write-Host ""
 
@@ -132,6 +147,7 @@ function Write-McpConfig($configPath) {
   $env:REDASH_URL     = $redashUrl
   $env:REDASH_API_KEY = $apiKey
   $env:CONFIG_PATH    = $configPath
+  $env:MCP_BIN        = $mcpBin
 
   node -e @"
 const fs = require('fs');
@@ -142,8 +158,8 @@ if (fs.existsSync(configPath)) {
 }
 config.mcpServers = config.mcpServers || {};
 config.mcpServers['redash-mcp'] = {
-  command: 'npx',
-  args: ['-y', 'redash-mcp'],
+  command: 'node',
+  args: [process.env.MCP_BIN],
   env: {
     REDASH_URL: process.env.REDASH_URL,
     REDASH_API_KEY: process.env.REDASH_API_KEY

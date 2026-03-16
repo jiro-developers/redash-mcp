@@ -105,7 +105,21 @@ else
   log_warn "Linux는 Claude Desktop을 공식 지원하지 않습니다. 이 단계를 건너뜁니다."
 fi
 
-# ── STEP 3: MCP 설정 ──────────────────────────────────────────────────────────
+# ── STEP 3: redash-mcp 다운로드 ───────────────────────────────────────────────
+log_step "redash-mcp 다운로드 중..."
+
+MCP_DIR="$HOME/.redash-mcp"
+MCP_BIN="$MCP_DIR/index.js"
+mkdir -p "$MCP_DIR"
+
+if curl -fsSL "https://raw.githubusercontent.com/jiro-developers/redash-mcp/main/dist/index.js" -o "$MCP_BIN"; then
+  log_success "다운로드 완료: $MCP_BIN"
+else
+  log_error "다운로드 실패. 네트워크 연결을 확인해주세요."
+  exit 1
+fi
+
+# ── STEP 4: MCP 설정 ──────────────────────────────────────────────────────────
 log_step "MCP 서버 설정을 시작합니다."
 echo ""
 
@@ -153,7 +167,7 @@ done
 write_mcp_config() {
   local config_path="$1"
   mkdir -p "$(dirname "$config_path")"
-  REDASH_URL="$REDASH_URL" REDASH_API_KEY="$REDASH_API_KEY" CONFIG_PATH="$config_path" \
+  REDASH_URL="$REDASH_URL" REDASH_API_KEY="$REDASH_API_KEY" CONFIG_PATH="$config_path" MCP_BIN="$MCP_BIN" \
     node -e "
 const fs = require('fs');
 const configPath = process.env.CONFIG_PATH;
@@ -163,8 +177,8 @@ if (fs.existsSync(configPath)) {
 }
 config.mcpServers = config.mcpServers || {};
 config.mcpServers['redash-mcp'] = {
-  command: 'npx',
-  args: ['-y', 'redash-mcp'],
+  command: 'node',
+  args: [process.env.MCP_BIN],
   env: {
     REDASH_URL: process.env.REDASH_URL,
     REDASH_API_KEY: process.env.REDASH_API_KEY

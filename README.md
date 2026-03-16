@@ -95,8 +95,8 @@ Redash → 우측 상단 프로필 → **Edit Profile** → **API Key** 복사
 {
   "mcpServers": {
     "redash-mcp": {
-      "command": "npx",
-      "args": ["-y", "redash-mcp"],
+      "command": "node",
+      "args": ["~/.redash-mcp/index.js"],
       "env": {
         "REDASH_URL": "https://your-redash-instance.com",
         "REDASH_API_KEY": "your_api_key_here"
@@ -108,7 +108,8 @@ Redash → 우측 상단 프로필 → **Edit Profile** → **API Key** 복사
 
 저장 후 Claude Desktop을 완전히 종료했다가 다시 시작합니다.
 
-> **macOS / Linux**: `npx`를 못 찾는 경우 `which npx` 명령어로 전체 경로를 확인 후 대체하세요.
+> `~/.redash-mcp/index.js`는 예시입니다. 실제 절대 경로로 입력하세요. (예: `/Users/username/.redash-mcp/index.js`)
+> Windows는 `C:\Users\username\.redash-mcp\index.js` 형식을 사용합니다.
 
 #### 2-B. Claude Code (CLI) 설정
 
@@ -128,8 +129,8 @@ Redash → 우측 상단 프로필 → **Edit Profile** → **API Key** 복사
 {
   "mcpServers": {
     "redash-mcp": {
-      "command": "npx",
-      "args": ["-y", "redash-mcp"],
+      "command": "node",
+      "args": ["~/.redash-mcp/index.js"],
       "env": {
         "REDASH_URL": "https://your-redash-instance.com",
         "REDASH_API_KEY": "your_api_key_here"

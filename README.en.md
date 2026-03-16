@@ -95,8 +95,8 @@ Open the config file below and add the `mcpServers` entry. Create the file if it
 {
   "mcpServers": {
     "redash-mcp": {
-      "command": "npx",
-      "args": ["-y", "redash-mcp"],
+      "command": "node",
+      "args": ["~/.redash-mcp/index.js"],
       "env": {
         "REDASH_URL": "https://your-redash-instance.com",
         "REDASH_API_KEY": "your_api_key_here"
@@ -108,7 +108,8 @@ Open the config file below and add the `mcpServers` entry. Create the file if it
 
 Fully quit and restart Claude Desktop after saving.
 
-> **macOS / Linux**: If `npx` is not found, run `which npx` to get the full path and use that instead.
+> `~/.redash-mcp/index.js` is an example. Use the actual absolute path. (e.g. `/Users/username/.redash-mcp/index.js`)
+> On Windows, use `C:\Users\username\.redash-mcp\index.js` format.
 
 #### 2-B. Claude Code (CLI)
 
@@ -128,8 +129,8 @@ Open the config file below and add the `mcpServers` entry.
 {
   "mcpServers": {
     "redash-mcp": {
-      "command": "npx",
-      "args": ["-y", "redash-mcp"],
+      "command": "node",
+      "args": ["~/.redash-mcp/index.js"],
       "env": {
         "REDASH_URL": "https://your-redash-instance.com",
         "REDASH_API_KEY": "your_api_key_here"
