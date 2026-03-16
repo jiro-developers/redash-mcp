@@ -113,6 +113,7 @@ MCP_BIN="$MCP_DIR/index.js"
 mkdir -p "$MCP_DIR"
 
 if curl -fsSL "https://raw.githubusercontent.com/jiro-developers/redash-mcp/main/dist/index.js" -o "$MCP_BIN"; then
+  echo '{"type":"module"}' > "$MCP_DIR/package.json"
   log_success "다운로드 완료: $MCP_BIN"
 else
   log_error "다운로드 실패. 네트워크 연결을 확인해주세요."

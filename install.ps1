@@ -88,6 +88,7 @@ if (-not (Test-Path $mcpDir)) { New-Item -ItemType Directory -Force -Path $mcpDi
 
 try {
   Invoke-WebRequest -Uri "https://raw.githubusercontent.com/jiro-developers/redash-mcp/main/dist/index.js" -OutFile $mcpBin -UseBasicParsing
+  '{"type":"module"}' | Set-Content (Join-Path $mcpDir "package.json") -Encoding UTF8
   Write-Success "다운로드 완료: $mcpBin"
 } catch {
   Write-Fail "다운로드 실패. 네트워크 연결을 확인해주세요."
