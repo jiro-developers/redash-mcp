@@ -109,4 +109,88 @@ fi
 log_step "MCP 서버 설정을 시작합니다."
 echo ""
 
-npx --yes redash-mcp setup
+# 설치 대상 선택
+echo "  설치 대상을 선택하세요:"
+echo "    1) Claude Desktop + Claude Code (CLI) 모두"
+echo "    2) Claude Desktop만"
+echo "    3) Claude Code (CLI)만"
+printf "  선택 [1]: "
+read -r TARGET_CHOICE </dev/tty
+TARGET_CHOICE="${TARGET_CHOICE:-1}"
+
+case "$TARGET_CHOICE" in
+  2) INSTALL_DESKTOP=true;  INSTALL_CLI=false ;;
+  3) INSTALL_DESKTOP=false; INSTALL_CLI=true  ;;
+  *) INSTALL_DESKTOP=true;  INSTALL_CLI=true  ;;
+esac
+
+# Redash URL
+while true; do
+  printf "  Redash URL을 입력하세요 (예: https://redash.example.com): "
+  read -r REDASH_URL </dev/tty
+  if [ -z "$REDASH_URL" ]; then
+    log_warn "URL을 입력해주세요."
+  elif [[ "$REDASH_URL" != http://* ]] && [[ "$REDASH_URL" != https://* ]]; then
+    log_warn "http:// 또는 https://로 시작해야 합니다."
+  else
+    REDASH_URL="${REDASH_URL%/}"
+    break
+  fi
+done
+
+# API Key
+while true; do
+  printf "  Redash API 키를 입력하세요: "
+  read -r REDASH_API_KEY </dev/tty
+  if [ -z "$REDASH_API_KEY" ]; then
+    log_warn "API 키를 입력해주세요."
+  else
+    break
+  fi
+done
+
+# JSON config 작성 (node 사용 - 이미 설치됨)
+write_mcp_config() {
+  local config_path="$1"
+  mkdir -p "$(dirname "$config_path")"
+  REDASH_URL="$REDASH_URL" REDASH_API_KEY="$REDASH_API_KEY" CONFIG_PATH="$config_path" \
+    node -e "
+const fs = require('fs');
+const configPath = process.env.CONFIG_PATH;
+let config = {};
+if (fs.existsSync(configPath)) {
+  try { config = JSON.parse(fs.readFileSync(configPath, 'utf8')); } catch {}
+}
+config.mcpServers = config.mcpServers || {};
+config.mcpServers['redash-mcp'] = {
+  command: 'npx',
+  args: ['-y', 'redash-mcp'],
+  env: {
+    REDASH_URL: process.env.REDASH_URL,
+    REDASH_API_KEY: process.env.REDASH_API_KEY
+  }
+};
+fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+"
+}
+
+if [ "$INSTALL_DESKTOP" = true ]; then
+  if [ "$OS" = "Darwin" ]; then
+    DESKTOP_CONFIG="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+  else
+    DESKTOP_CONFIG="$HOME/.config/Claude/claude_desktop_config.json"
+  fi
+  log_info "Claude Desktop 설정 중..."
+  write_mcp_config "$DESKTOP_CONFIG"
+  log_success "Claude Desktop 설정 완료"
+fi
+
+if [ "$INSTALL_CLI" = true ]; then
+  log_info "Claude Code (CLI) 설정 중..."
+  write_mcp_config "$HOME/.claude/settings.json"
+  log_success "Claude Code (CLI) 설정 완료"
+fi
+
+echo ""
+log_success "설치가 완료되었습니다. Claude를 재시작하면 redash-mcp를 사용할 수 있습니다."
+echo ""

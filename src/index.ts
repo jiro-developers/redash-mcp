@@ -5,17 +5,6 @@ import { z } from "zod";
 import { analyzeQuery } from "./sql-guard.js";
 import { getCached, setCached } from "./query-cache.js";
 
-if (process.argv[2] === "setup") {
-  const { main } = await import("./setup.js");
-  await main();
-  process.exit(0);
-}
-
-if (process.argv[2] === "install") {
-  const { main } = await import("./install.js");
-  await main();
-  process.exit(0);
-}
 
 const REDASH_URL = process.env.REDASH_URL?.replace(/\/$/, "");
 const REDASH_API_KEY = process.env.REDASH_API_KEY;

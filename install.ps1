@@ -83,4 +83,90 @@ if (Test-Path $claudePath) {
 Write-Step "MCP 서버 설정을 시작합니다."
 Write-Host ""
 
-npx --yes redash-mcp setup
+# 설치 대상 선택
+Write-Host "  설치 대상을 선택하세요:"
+Write-Host "    1) Claude Desktop + Claude Code (CLI) 모두"
+Write-Host "    2) Claude Desktop만"
+Write-Host "    3) Claude Code (CLI)만"
+$targetChoice = Read-Host "  선택 [1]"
+if ([string]::IsNullOrWhiteSpace($targetChoice)) { $targetChoice = "1" }
+
+$installDesktop = $true
+$installCli     = $true
+switch ($targetChoice) {
+  "2" { $installDesktop = $true;  $installCli = $false }
+  "3" { $installDesktop = $false; $installCli = $true  }
+}
+
+# Redash URL
+do {
+  $redashUrl = Read-Host "  Redash URL을 입력하세요 (예: https://redash.example.com)"
+  if ([string]::IsNullOrWhiteSpace($redashUrl)) {
+    Write-Warn "URL을 입력해주세요."
+    $validUrl = $false
+  } elseif ($redashUrl -notmatch "^https?://") {
+    Write-Warn "http:// 또는 https://로 시작해야 합니다."
+    $validUrl = $false
+  } else {
+    $redashUrl = $redashUrl.TrimEnd('/')
+    $validUrl  = $true
+  }
+} while (-not $validUrl)
+
+# API Key
+do {
+  $apiKey = Read-Host "  Redash API 키를 입력하세요"
+  if ([string]::IsNullOrWhiteSpace($apiKey)) {
+    Write-Warn "API 키를 입력해주세요."
+    $validKey = $false
+  } else {
+    $validKey = $true
+  }
+} while (-not $validKey)
+
+# JSON config 작성 함수 (node 사용 - 이미 설치됨)
+function Write-McpConfig($configPath) {
+  $dir = Split-Path $configPath -Parent
+  if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+
+  $env:REDASH_URL     = $redashUrl
+  $env:REDASH_API_KEY = $apiKey
+  $env:CONFIG_PATH    = $configPath
+
+  node -e @"
+const fs = require('fs');
+const configPath = process.env.CONFIG_PATH;
+let config = {};
+if (fs.existsSync(configPath)) {
+  try { config = JSON.parse(fs.readFileSync(configPath, 'utf8')); } catch {}
+}
+config.mcpServers = config.mcpServers || {};
+config.mcpServers['redash-mcp'] = {
+  command: 'npx',
+  args: ['-y', 'redash-mcp'],
+  env: {
+    REDASH_URL: process.env.REDASH_URL,
+    REDASH_API_KEY: process.env.REDASH_API_KEY
+  }
+};
+fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+"@
+}
+
+if ($installDesktop) {
+  $desktopConfig = Join-Path $env:APPDATA "Claude\claude_desktop_config.json"
+  Write-Info "Claude Desktop 설정 중..."
+  Write-McpConfig $desktopConfig
+  Write-Success "Claude Desktop 설정 완료"
+}
+
+if ($installCli) {
+  $cliConfig = Join-Path $env:USERPROFILE ".claude\settings.json"
+  Write-Info "Claude Code (CLI) 설정 중..."
+  Write-McpConfig $cliConfig
+  Write-Success "Claude Code (CLI) 설정 완료"
+}
+
+Write-Host ""
+Write-Success "설치가 완료되었습니다. Claude를 재시작하면 redash-mcp를 사용할 수 있습니다."
+Write-Host ""
